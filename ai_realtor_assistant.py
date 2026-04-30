@@ -151,8 +151,11 @@ async def handle_photo(message: Message, state: FSMContext):
 
         await state.clear()
 
-    except Exception:
-        await message.answer("⚠️ Ошибка обработки.")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+
+        await message.answer(f"⚠️ Ошибка обработки: {str(e)}")
 
 
 # ====== AI FUNCTIONS ======
@@ -169,18 +172,18 @@ async def analyze_with_vision(photos):
     ]
 
     response = client.responses.create(
-        model="gpt-4.1",
+        model="gpt-4o",
         input=[ # type: ignore
             {"role": "user", "content": content}
         ]
     )
 
-    return response.output_text
+    return response.output[0].content[0].text
 
 
 async def extract_structured_data(voice_text, vision_analysis):
     response = client.responses.create( # type: ignore
-        model="gpt-4.1",
+        model="gpt-4o",
         response_format={"type": "json_object"},
         input=[
             {"role": "system", "content": STRUCTURE_PROMPT},
@@ -191,12 +194,12 @@ async def extract_structured_data(voice_text, vision_analysis):
         ]
     )
 
-    return json.loads(response.output_text)
+    return response.output[0].content[0].text
 
 
 async def generate_listing(structured_data):
     response = client.responses.create(
-        model="gpt-4.1",
+        model="gpt-4o",
         input=[ # type: ignore
             {"role": "system", "content": GENERATION_PROMPT},
             {
@@ -207,7 +210,7 @@ async def generate_listing(structured_data):
         temperature=0.7
     )
 
-    return response.output_text
+    return response.output[0].content[0].text
 
 
 # ====== START ======
