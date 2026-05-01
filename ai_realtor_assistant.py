@@ -32,6 +32,7 @@ dp = Dispatcher(storage=MemoryStorage())
 
 MAX_PHOTOS = 2
 
+
 # ====== UTILS ======
 def encode_image(image_bytes):
     return base64.b64encode(image_bytes).decode("utf-8")
@@ -158,6 +159,14 @@ async def handle_photo(message: Message, state: FSMContext):
         await message.answer(f"⚠️ Ошибка обработки: {str(e)}")
 
 
+def safe_json_parse(text):
+    try:
+        return json.loads(text)
+    except Exception:
+        print("RAW RESPONSE:", text)
+        raise
+
+
 # ====== AI FUNCTIONS ======
 async def analyze_with_vision(photos):
     content = [
@@ -173,7 +182,7 @@ async def analyze_with_vision(photos):
 
     response = client.responses.create(
         model="gpt-4o-mini",
-        input=[ # type: ignore
+        input=[  # type: ignore
             {"role": "user", "content": content}
         ],
         max_output_tokens=200
@@ -183,26 +192,26 @@ async def analyze_with_vision(photos):
 
 
 async def extract_structured_data(voice_text, vision_analysis):
-    response = client.responses.create( # type: ignore
+    response = client.responses.create(
         model="gpt-4o-mini",
-        response_format={"type": "json_object"},
-        input=[
+        input=[  # type: ignore
             {"role": "system", "content": STRUCTURE_PROMPT},
             {
                 "role": "user",
                 "content": f"Голос:\n{voice_text}\n\nФото:\n{vision_analysis}"
             }
         ],
-        max_output_tokens = 300
+        max_output_tokens=300
     )
 
-    return response.output[0].content[0].text
+    text = response.output[0].content[0].text
+    return safe_json_parse(text)
 
 
 async def generate_listing(structured_data):
     response = client.responses.create(
         model="gpt-4o",
-        input=[ # type: ignore
+        input=[  # type: ignore
             {"role": "system", "content": GENERATION_PROMPT},
             {
                 "role": "user",
