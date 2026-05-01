@@ -161,13 +161,13 @@ async def handle_photo(message: Message, state: FSMContext):
 # ====== AI FUNCTIONS ======
 async def analyze_with_vision(photos):
     content = [
-        {"type": "text", "text": VISION_PROMPT},
+        {"type": "input_text", "text": VISION_PROMPT},
         *[
             {
                 "type": "input_image",
-                "image_base64": encode_image(photo)
+                "image_url": f"data:image/jpeg;base64,{encode_image(photo)}"
             }
-            for photo in photos
+            for photo in photos[:2]
         ]
     ]
 
