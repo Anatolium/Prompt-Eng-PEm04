@@ -30,7 +30,7 @@ bot = Bot(token=TELEGRAM_TOKEN)
 
 dp = Dispatcher(storage=MemoryStorage())
 
-MAX_PHOTOS = 3
+MAX_PHOTOS = 2
 
 # ====== UTILS ======
 def encode_image(image_bytes):
@@ -54,7 +54,7 @@ async def cmd_start(message: Message):
     await message.answer(
         "🏠 Привет!\n"
         "1. Отправь голосовое описание квартиры\n"
-        "2. Затем до 3 фото\n\n"
+        "2. Затем до 2 фото\n\n"
         "Я создам объявление для ЦИАН"
     )
 
@@ -101,7 +101,7 @@ async def handle_any_audio(message: Message, state: FSMContext):
 
         await message.answer(
             "🎤 Описание получено!\n"
-            "Теперь отправь до 3 фото квартиры."
+            "Теперь отправь до 2 фото квартиры."
         )
 
     except Exception as e:
@@ -123,7 +123,7 @@ async def handle_photo(message: Message, state: FSMContext):
     photos = data.get("photos", [])
 
     if len(photos) >= MAX_PHOTOS:
-        await message.answer("⚠️ Максимум 3 фото.")
+        await message.answer("⚠️ Максимум 2 фото.")
         return
 
     photo = message.photo[-1]
@@ -172,10 +172,11 @@ async def analyze_with_vision(photos):
     ]
 
     response = client.responses.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         input=[ # type: ignore
             {"role": "user", "content": content}
-        ]
+        ],
+        max_output_tokens=200
     )
 
     return response.output[0].content[0].text
@@ -183,7 +184,7 @@ async def analyze_with_vision(photos):
 
 async def extract_structured_data(voice_text, vision_analysis):
     response = client.responses.create( # type: ignore
-        model="gpt-4o",
+        model="gpt-4o-mini",
         response_format={"type": "json_object"},
         input=[
             {"role": "system", "content": STRUCTURE_PROMPT},
@@ -191,7 +192,8 @@ async def extract_structured_data(voice_text, vision_analysis):
                 "role": "user",
                 "content": f"Голос:\n{voice_text}\n\nФото:\n{vision_analysis}"
             }
-        ]
+        ],
+        max_output_tokens = 300
     )
 
     return response.output[0].content[0].text
@@ -207,6 +209,7 @@ async def generate_listing(structured_data):
                 "content": json.dumps(structured_data, ensure_ascii=False)
             }
         ],
+        max_output_tokens=400,
         temperature=0.7
     )
 
